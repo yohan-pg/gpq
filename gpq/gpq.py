@@ -54,23 +54,17 @@ class GPU:
 
     @staticmethod
     def priority(gpu_spec: nvsmi.GPU) -> int:
-        return gpu_spec.mem_free
+        return gpu_spec.mem_used
 
     @staticmethod
     def get_next_free() -> Optional["GPU"]:
-        if gpu_list := sorted(
-            nvsmi.get_available_gpus(), key=GPU.priority, reverse=True
-        ):
+        if gpu_list := sorted(nvsmi.get_available_gpus(), key=GPU.priority):
             return GPU(gpu_list[0])
         else:
             return None
 
     def select(self) -> None:
-        # fixes the possible ordering mispatch between torch (which orders by bus id) and cuda drivers (which order by card power)
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-
-        os.environ["CUDA_VISIBLE_DEVICES"] = self.gpu_spec.id
-
+        torch.cuda.set_device(int(self.gpu_spec.id))
         # Allocate some dummy value, forcing initialization and marking the gpu as utilized
         torch.empty(1).cuda()
 
@@ -81,17 +75,12 @@ queue = PIDQueue()
 
 
 def wait_for_turn(polling_interval_secs: int = 2) -> None:
-    assert (
-        not torch.cuda.is_initialized()
-    ), "gpq: `wait_for_turn` must be called before torch is ever used (but, after imports)"
-
     longprocess.linger()
 
     queue.enqueue_self()
     had_to_wait_yet = False
 
     while True:
-        time.sleep(polling_interval_secs)
         if queue.peek() == os.getpid() and (gpu := GPU.get_next_free()):
             gpu.select()
             queue.pop()
@@ -99,6 +88,7 @@ def wait_for_turn(polling_interval_secs: int = 2) -> None:
         elif not had_to_wait_yet:
             had_to_wait_yet = True
             print("Waiting for turn...")
+        time.sleep(polling_interval_secs)
 
 
 def print_full_queue() -> None:
