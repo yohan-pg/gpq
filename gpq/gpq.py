@@ -81,7 +81,6 @@ def wait_for_turn(polling_interval_secs: int = 2) -> None:
     had_to_wait_yet = False
 
     while True:
-        breakpoint()
         if queue.peek() == os.getpid() and (gpu := GPU.get_next_free()):
             gpu.select()
             queue.pop()
