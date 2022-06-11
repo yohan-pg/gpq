@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gpq"
-version = "0.2.0"
+version = "0.3.0"
 description = ""
 authors = ["yohan-pg <pg.yohan@gmail.com>"]
 readme = "README.md"
