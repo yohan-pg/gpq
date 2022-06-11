@@ -54,7 +54,7 @@ class GPU:
 
     @staticmethod
     def priority(gpu_spec: nvsmi.GPU) -> int:
-        return gpu_spec.mem_used
+        return -gpu_spec.mem_free
 
     @staticmethod
     def get_next_free() -> Optional["GPU"]:
@@ -81,6 +81,7 @@ def wait_for_turn(polling_interval_secs: int = 2) -> None:
     had_to_wait_yet = False
 
     while True:
+        breakpoint()
         if queue.peek() == os.getpid() and (gpu := GPU.get_next_free()):
             gpu.select()
             queue.pop()
